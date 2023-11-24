@@ -6,18 +6,17 @@
     <meta name="description" content="Лабораторна робота. З'єднання з базою даних">
     <title>Таблиця з повідомленнями</title>
 
-<style>
-    td,th, table {
-        border: 1px solid black
-    }
-</style>
-
+    <style>
+        td, th, table {
+            border: 1px solid black;
+        }
+    </style>
 </head>
 <body>
 
     <h1>Всі повідомлення</h1>
 
-<?php
+    <?php
 // Параметри для з'єднання з базою даних
 $host = 'localhost';
 $username = 'root';
@@ -33,40 +32,52 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // Отримання всіх повідомлень від користувачів
-    $sql = "SELECT u.user_name, m.message_text FROM users AS u INNER JOIN messages AS m ON u.user_id = m.user_id";
+    $sql = "SELECT * FROM messages"; // Змінено на messages
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     
     // Виведення результатів у вигляді HTML-таблиці
     if ($stmt->rowCount() > 0) {
-        echo "<table><tr><th>Користувач</th><th>Повідомлення</th></tr>";
-
+        echo "<table><tr><th>ID</th><th>Message Text</th></tr>";
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            printf("<tr><td>%s</td><td>%s</td></tr>", $row['user_name'], $row['message_text']);
+            printf("<tr><td>%s</td><td>%s</td></tr>", $row['message_id'], $row['message_text']);
         }
 
         echo "</table>";
     } else {
         echo "Немає даних у таблиці.";
     }
+
+    // Додавання користувача до таблиці `users`
+    $username = 'Імя_користувача';
+    $email = 'емейл@приклад.com';
+
+    $sqlCheckUser = "SELECT * FROM users WHERE user_name = :username";
+    $stmtCheckUser = $pdo->prepare($sqlCheckUser);
+    $stmtCheckUser->bindParam(':username', $username, PDO::PARAM_STR);
+    $stmtCheckUser->execute();
+
+    if ($stmtCheckUser->rowCount() == 0) {
+        // Якщо користувача ще немає, додаємо його
+        $sqlAddUser = "INSERT INTO users (user_id, user_name) VALUES (:username, :email)";
+        $stmtAddUser = $pdo->prepare($sqlAddUser);
+        $stmtAddUser->bindParam(':username', $username, PDO::PARAM_STR);
+        $stmtAddUser->bindParam(':email', $email, PDO::PARAM_STR);
+        $stmtAddUser->execute();
+
+        // Додаємо повідомлення від користувача
+        $sqlAddMessage = "INSERT INTO messages (message_text, user_id) VALUES ('Повідомлення від користувача', LAST_INSERT_ID())";
+        $pdo->query($sqlAddMessage);
+    }
+
 } catch (PDOException $e) {
     die("Помилка: " . $e->getMessage());
 }
 
 // Закриття підключення до бази даних
 $pdo = null;
-
 ?>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
